@@ -1,4 +1,4 @@
-interface stumpModel {
+export interface StumpModel {
 	predict: any;
 	split: any;
 	baseSplit: any;
@@ -8,8 +8,8 @@ export function decisionStump(_X: number[][], _y: number): stumpModel {
 	// fits a decision stump based on inequalities
 
 	// get size of the data matrix
-	const n: number = X?.length;
-	const d: number = X?.[0]?.length;
+	const n: number = _X?.length;
+	const d: number = _X?.[0]?.length;
 
 	// don't round
 	// const X = _X.map(e => Math.round(e));
@@ -20,36 +20,35 @@ export function decisionStump(_X: number[][], _y: number): stumpModel {
 	let y_mode: number = mode(y);
 	let minError: number = y
 		.map(y_i => y_i != y_mode)
-		.reduce((acc, cur) => acc + cur, 0);
+		.reduce((acc, cur) => acc + +cur, 0);
 	let splitVariable: number = -1;
 	let splitValue: number = -1;
-	let splitYes: number = y_mode;
-	let splitNo: number = -1;
+	let splitYes: boolean = true;
+	let splitNo: boolean = true;
 
-	let yhat = new Array(n);
+	let yhat: boolean[] = new Array(n).map(e => false);
 	for (let j = 0; j < d; j++) {
-		for (val of uniqueValuesInCol(X, j)) {
+		for (let val of uniqueValuesInCol(X, j)) {
 
 			// Test whether each object satisfies inequality
-			const isYes = X.map(example => example[j] < val);
+			const isYes: boolean[] = X.map(example => example[j] < val);
 
 			// find correct label on both sides of split
-
-			// FIX I THINK
-			const y_yes = mode(y.map((e, i) => e == isYes[i]));
-			const y_yes = mode(y.map((e, i) => e != isYes[i]));
+			// FIX
+			const y_yes: boolean = !!mode(y.map((e, i) => isYes[i]));
+			const y_no: boolean = !!mode(y.map((e, i) => isYes[i]));
 
 			// make predictions
 			yhat.map((e, i) => isYes[i] ? y_yes : y_no);
 
 			// compute error
-			let trainError = 0;
-			for (let i = 0; i < n; i++) {
-				if ((X[i][j] <  val && y[i] == y_no) ||
-					(X[i][j] >= val && y[i] == y_yes)) {
-					trainError++;
+			let trainError = yhat.reduce((acc, cur, i) => {
+				if (cur == isYes[i]) {
+					return acc + 1;
+				} else {
+					return acc;
 				}
-			}
+			}, 0);
 
 			// update best rule
 			if (trainError < minError && trainError != 0) {
@@ -62,7 +61,7 @@ export function decisionStump(_X: number[][], _y: number): stumpModel {
 		}
 	}
 
-	function split(Xhat: number[][]): number[] {
+	function split(Xhat: number[][]): boolean[] {
 		const t: number = Xhat?.length;
 		const d: number = Xhat?.[0]?.length;
 
@@ -77,8 +76,8 @@ export function decisionStump(_X: number[][], _y: number): stumpModel {
 	function predict(Xhat: number[][]): number[] {
 		const t: number = Xhat?.length;
 		const d: number = Xhat?.[0]?.length;
-		const yes = split(Xhat);
-		const yhat = fill(splitYes, t);
+		const yes: boolean[] = split(Xhat);
+		const yhat = new Array(t).map(e => splitYes);
 
 		if (yes.filter(e => !e).length > 0) {
 			yhat.map(e => e ? e : splitNo);
@@ -88,11 +87,14 @@ export function decisionStump(_X: number[][], _y: number): stumpModel {
 	return {predict: predict, split: split, baseSplit: splitNo.length == 0};
 }
 
-
-function mode(arr: number[]): number[] {
-	return arr.reduce((acc, cur) => {
-		acc[cur] = acc[cur] ? acc[cur] + 1: 1;
-	}, {});
+function mode(arr: number[]): number {
+	return arr
+		.reduce((acc, cur) => {
+			acc[cur] = acc[cur] ? acc[cur] + 1: 1;
+		}, {})
+		.reduce((acc, cur) => {
+			return acc > cur ? acc : cur;
+		}, -Infinity);
 }
 
 function uniqueValuesInCol(X: number[][], j: number): number[] {
