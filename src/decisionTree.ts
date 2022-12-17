@@ -3,7 +3,7 @@ function decisionTree(X: number[][], y: number[], depth: number): any {
 	const n = X?.length;
 	const d = X?.[0]?.length;
 
-	splitModel: StumpModel = decisionStump(X, y);
+	let splitModel: StumpModel = decisionStump(X, y);
 
 	if (depth <= 1 || splitModel.baseSplit) {
 		return splitModel;
@@ -23,8 +23,8 @@ function decisionTree(X: number[][], y: number[], depth: number): any {
 		return !yes[i];
 	}), depth - 1);
 
-	function predict(Xhat: number[][]) {
-		const n = Xhat?.length;
+	function predict(Xhat: number[][]): boolean[] {
+		const t = Xhat?.length;
 		const d = Xhat?.[0]?.length;
 		const yhat: boolean[] = new Array(t).map(e => false);
 

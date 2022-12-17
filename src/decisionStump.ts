@@ -4,7 +4,7 @@ export interface StumpModel {
 	baseSplit: any;
 }
 
-export function decisionStump(_X: number[][], _y: number): stumpModel {
+export function decisionStump(_X: number[][], _y: number[]): StumpModel {
 	// fits a decision stump based on inequalities
 
 	// get size of the data matrix
@@ -73,36 +73,39 @@ export function decisionStump(_X: number[][], _y: number): stumpModel {
 	}
 
 	// build predict function
-	function predict(Xhat: number[][]): number[] {
+	function predict(Xhat: number[][]): boolean[] {
 		const t: number = Xhat?.length;
 		const d: number = Xhat?.[0]?.length;
 		const yes: boolean[] = split(Xhat);
-		const yhat = new Array(t).map(e => splitYes);
+		let yhat: boolean[] = new Array(t).map(e => splitYes);
 
 		if (yes.filter(e => !e).length > 0) {
-			yhat.map(e => e ? e : splitNo);
+			yhat = yhat.map(e => e ? e : splitNo);
 		}
+		return yhat;
 	}
 
-	return {predict: predict, split: split, baseSplit: splitNo.length == 0};
+	return {predict: predict, split: split, baseSplit: true};
 }
 
-function mode(arr: number[]): number {
-	return arr
-		.reduce((acc, cur) => {
-			acc[cur] = acc[cur] ? acc[cur] + 1: 1;
-		}, {})
-		.reduce((acc, cur) => {
-			return acc > cur ? acc : cur;
-		}, -Infinity);
+function mode<T>(arr: T[]): T {
+	let counts: Map<T,number> = new Map<T,number>();
+	arr.forEach(e => {
+		counts.set(e, counts.has(e) ? counts.get(e) + 1: 1);
+	});
+	let max: number = -Infinity;
+	let maxI: T;
+	for (let [key, value] of counts) {
+		if (value > max) {
+			max = value;
+			maxI = key;
+		}
+	}
+	return maxI;
 }
 
 function uniqueValuesInCol(X: number[][], j: number): number[] {
 	return X
-		.reduce((acc, cur) => {
-			if (!acc.includes(cur[j])) {
-				acc.push(cur[j]);
-			}
-		}, [])
+		.reduce((acc, cur) => acc.includes(cur[j])?acc:[...acc, cur[j]], [])
 		.map(row => row[j]);
 }
